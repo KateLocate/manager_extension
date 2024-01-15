@@ -1,13 +1,32 @@
-import time
+import asyncio
+import logging
+import sys
 from random import randint
 from fastapi import FastAPI
 
 app = FastAPI()
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.info('API is starting up')
+
 
 @app.get('/')
-def hellow():
+async def hellow():
     delta = randint(0, 10)
-    time.sleep(delta)
+    logger.info(delta)
+    await asyncio.sleep(delta)
+    logger.info(delta)
+    return {'message': 'heh',
+            'delta': delta}
+
+
+@app.get('/app')
+async def hello():
+    delta = randint(0, 10)
+    logger.info(str(delta + 'mda')
+    await asyncio.sleep(delta)
+    logger.info(str(delta) + 'mda')
     return {'message': 'heh',
             'delta': delta}
