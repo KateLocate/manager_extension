@@ -15,18 +15,8 @@ logger.info('API is starting up')
 @app.get('/')
 async def hellow():
     delta = randint(0, 10)
-    logger.info(delta)
+    logger.info('start %s', delta)
     await asyncio.sleep(delta)
-    logger.info(delta)
-    return {'message': 'heh',
-            'delta': delta}
-
-
-@app.get('/app')
-async def hello():
-    delta = randint(0, 10)
-    logger.info(str(delta + 'mda')
-    await asyncio.sleep(delta)
-    logger.info(str(delta) + 'mda')
+    logger.info('stop %s', delta)
     return {'message': 'heh',
             'delta': delta}
