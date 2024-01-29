@@ -2,7 +2,6 @@ on:
   pull_request:
     branches:
     - main
-    - test
 
 run-name: Check if the code pass all the tests and meet the style requirements.
 
