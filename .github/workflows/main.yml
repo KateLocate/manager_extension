@@ -4,9 +4,22 @@ on:
     - main
     - test
 
+run-name: Check if the code pass all the tests and meet the style requirements.
+
 jobs:
   pr_checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   
     steps:
-      - name: Check if the code pass all the tests and meet the style requirements
-        run: pylint --rcfile=.pylintrc.toml manager_extension
+      - uses: actions/checkout@v4
+      - name: Python Installation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install .[dev]
+      - name: pytest checks
+        run: pytest src/tests --cov=manager_extension --cov-fail-under=80
+      - name: pylint checks
+        run: pylint --rcfile=.pylintrc.toml src/manager_extension
+      - name: flake8 checks
+        run: flake8 src
