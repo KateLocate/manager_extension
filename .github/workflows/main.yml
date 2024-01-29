@@ -9,4 +9,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if the code pass all the tests and meet the style requirements
-        run: pylint --rcfile=.pylintrc.toml manager_extension
+        run: pip install .[dev] && pylint --rcfile=.pylintrc.toml manager_extension
