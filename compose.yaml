@@ -3,15 +3,20 @@ services:
     container_name: 'mock_service'
     build: .
     ports:
-      - "8000:8000"
+      - '8000:8000'
     volumes:
       - .:/code
     networks:
         - rabbitmq_web_net
-
     entrypoint: run-mock-service
+
   rabbit:
     image: rabbitmq:3.13-rc-management
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
     container_name: 'rabbitmq'
     ports:
         - 5672:5672
@@ -21,6 +26,22 @@ services:
         - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
         - rabbitmq_web_net
+
+  rabbit_service:
+    container_name: 'mock_rabbit_service'
+    build: .
+    depends_on:
+      rabbit:
+        condition: service_healthy
+        restart: true
+    ports:
+      - '8080:8080'
+    volumes:
+      - .:/code
+    networks:
+      - rabbitmq_web_net
+    entrypoint: run-mock-rabbitmq
+
 
 networks:
   rabbitmq_web_net:
