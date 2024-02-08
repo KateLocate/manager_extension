@@ -4,6 +4,7 @@ import aio_pika
 
 
 async def _main() -> None:
+    IN, OUT = 'in', 'out'
     connection = await aio_pika.connect_robust(
         "amqp://guest:guest@rabbitmq/",
     )
@@ -17,17 +18,18 @@ async def _main() -> None:
         # Declare an exchange
         exchange = await channel.declare_exchange('base')
         # A queue
-        await channel.declare_queue('in', auto_delete=True)
+        in_queue = await channel.declare_queue(IN, auto_delete=True)
+        # Bind the queue to the exchange
+        await in_queue.bind(exchange)
 
         print('Enter RabbitMQ message input mode.\nIf you want to exit, use "Ctrl+C".')
         try:
             while True:
-                routing_key = "in"
                 msg = input('Message:')
 
                 await exchange.publish(
-                    aio_pika.Message(body=f"Hello {msg}".encode()),
-                    routing_key=routing_key,
+                    aio_pika.Message(body=f"message: {msg}".encode()),
+                    routing_key=IN,
                 )
         except KeyboardInterrupt:
             print('Exit input mode.')
