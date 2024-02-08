@@ -1,8 +1,27 @@
 services:
   web:
+    container_name: 'mock_service'
     build: .
     ports:
       - "8000:8000"
     volumes:
       - .:/code
+    networks:
+        - rabbitmq_web_net
+
     entrypoint: run-mock-service
+  rabbit:
+    image: rabbitmq:3.13-rc-management
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+        - rabbitmq_web_net
+
+networks:
+  rabbitmq_web_net:
+    driver: bridge
