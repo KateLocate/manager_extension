@@ -15,7 +15,7 @@ requires-python = ">=3.10"
 
 [project.scripts]
 run-mock-service = "manager_extension.mock_service.launch_script:main"
-run-mock-rabbitmq = "manager_extension.mock_rabbitmq_service.publisher:main"
+run-mock-rabbitmq = "manager_extension.mock_rabbitmq_service.main:main"
 
 [project.optional-dependencies]
 dev = [
