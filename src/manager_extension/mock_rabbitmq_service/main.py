@@ -7,10 +7,20 @@ IN, OUT = 'in', 'out'
 EXCHANGE_NAME = 'base'
 
 
-async def mock_process():
-    delay = random.randint(1, 5)
-    await asyncio.sleep(delay)
-
+class BusinessProcessor:
+    def __init__(self, rmq_manager):
+        self.rmq_manager = rmq_manager
+    
+    async def mock_process(self):
+        delay = random.randint(1, 5)
+        await asyncio.sleep(delay)
+    
+    async def process_queue_message(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
+        async with message.process():
+            print(message.body)
+            await self.mock_process()
+            await self.rmq_manager.publish_msg(OUT, message.body.decode('utf-8'))
+        
 
 class RabbitMQManager:
     def __init__(self, rmq_url):
@@ -21,10 +31,11 @@ class RabbitMQManager:
         self.in_queue = None
         self.out_queue = None
 
-    async def get_connection(self):
+    async def connect(self):
         self.rmq_connection = await aio_pika.connect_robust(self.rmq_url)
 
     async def setup(self):
+        await self.connect()
         # Channel
         channel = await self.rmq_connection.channel()
         # Will take no more than 10 messages in advance
@@ -37,39 +48,33 @@ class RabbitMQManager:
         # Bind the queues to the exchange
         await self.in_queue.bind(self.exchange)
         await self.out_queue.bind(self.exchange)
-
+        
     async def publish_msg(self, routing_key, msg):
         await self.exchange.publish(
             aio_pika.Message(body=msg.encode()),
             routing_key=routing_key,
         )
 
-    async def process_queue_message(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
-        async with message.process():
-            print(message.body)
-            await mock_process()
-            await self.publish_msg(OUT, message.body.decode('utf-8'))
+    async def consume_messages(self, func):
+        await self.in_queue.consume(func)
 
-    async def close_connection(self):
+    async def teardown(self):
         await self.rmq_connection.close()
 
 
 async def _main() -> None:
     rmq_manager = RabbitMQManager("amqp://guest:guest@rabbitmq/")
-    await rmq_manager.get_connection()
     await rmq_manager.setup()
+    
+    business_processor = BusinessProcessor(rmq_manager)
 
-    messages_batch = ['a' * (i + 1) for i in range(1)]
-    for message in messages_batch:
-        await rmq_manager.publish_msg(IN, message)
-
-    await rmq_manager.in_queue.consume(rmq_manager.process_queue_message)
+    await rmq_manager.consume_messages(business_processor.process_queue_message)
 
     try:
         # Wait until terminate
         await asyncio.Future()
     finally:
-        await rmq_manager.close_connection()
+        await rmq_manager.teardown()
 
 
 def main():
