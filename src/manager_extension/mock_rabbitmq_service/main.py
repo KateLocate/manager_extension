@@ -11,7 +11,8 @@ class BusinessProcessor:
     def __init__(self, rmq_manager):
         self.rmq_manager = rmq_manager
     
-    async def mock_process(self):
+    @staticmethod
+    async def mock_process():
         delay = random.randint(1, 5)
         await asyncio.sleep(delay)
     
