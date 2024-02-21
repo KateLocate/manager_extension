@@ -1,10 +1,17 @@
 import asyncio
 import random
 
+from pydantic import Field
+from pydantic_settings import BaseSettings
+
 import aio_pika
 
-IN, OUT = 'in', 'out'
-EXCHANGE_NAME = 'base'
+
+class Settings(BaseSettings):
+    in_queue = Field(default='in')
+    out_queue = Field(default='out')
+    exchange_name = Field(default='base')
+    rmq_dsn = Field(default="amqp://guest:guest@rabbitmq/")
 
 
 class BusinessProcessor:
@@ -20,8 +27,8 @@ class BusinessProcessor:
         async with message.process():
             print(message.body)
             await self.mock_process()
-            await self.rmq_manager.publish_msg(OUT, message.body.decode('utf-8'))
-        
+            await self.rmq_manager.publish_msg(Settings.out_queue, message.body.decode('utf-8'))
+
 
 class RabbitMQManager:
     def __init__(self, rmq_url):
@@ -32,20 +39,20 @@ class RabbitMQManager:
         self.in_queue = None
         self.out_queue = None
 
-    async def connect(self):
+    async def _connect(self):
         self.rmq_connection = await aio_pika.connect_robust(self.rmq_url)
 
     async def setup(self):
-        await self.connect()
+        await self._connect()
         # Channel
         channel = await self.rmq_connection.channel()
         # Will take no more than 10 messages in advance
         await channel.set_qos(prefetch_count=10)
         # Declare an exchange
-        self.exchange = await channel.declare_exchange(EXCHANGE_NAME)
+        self.exchange = await channel.declare_exchange(Settings.exchange_name)
         # The queues
-        self.in_queue = await channel.declare_queue(IN, auto_delete=True)
-        self.out_queue = await channel.declare_queue(OUT, auto_delete=True)
+        self.in_queue = await channel.declare_queue(Settings.in_queue, auto_delete=True)
+        self.out_queue = await channel.declare_queue(Settings.out_queue, auto_delete=True)
         # Bind the queues to the exchange
         await self.in_queue.bind(self.exchange)
         await self.out_queue.bind(self.exchange)
@@ -64,7 +71,7 @@ class RabbitMQManager:
 
 
 async def _main() -> None:
-    rmq_manager = RabbitMQManager("amqp://guest:guest@rabbitmq/")
+    rmq_manager = RabbitMQManager(Settings.rmq_dsn)
     await rmq_manager.setup()
     
     business_processor = BusinessProcessor(rmq_manager)
